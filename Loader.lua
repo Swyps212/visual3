@@ -1,372 +1,276 @@
-local Players = game:GetService("Players")
+--// Steal a Brainrot GUI v8.0 (Progress Bar + Done Sound) //--
+
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
 
-local success, VirtualInputManager = pcall(function()
-    return game:GetService("VirtualInputManager")
-end)
-if not success then
-    VirtualInputManager = nil
-end
-
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
-
-local old = PlayerGui:FindFirstChild("BrainrotHub")
-if old then
-    old:Destroy()
-end
-
+-- ScreenGui
 local gui = Instance.new("ScreenGui")
-gui.Name = "BrainrotHub"
+gui.Name = "StealABrainrot"
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = PlayerGui
+gui.Parent = playerGui
 
--- Toggle button
+-- MAIN FRAME
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 360, 0, 280)
+frame.Position = UDim2.new(0.5, -180, 0.5, -140)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 20)
+corner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Steal a Brainrot 😎"
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(0, 255, 0)
+title.Parent = frame
+
+-- Quick Button Creator
+local function makeButton(text, color, ypos)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 260, 0, 45)
+	btn.Position = UDim2.new(0.5, -130, 0, ypos)
+	btn.Text = text
+	btn.TextScaled = true
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.BackgroundColor3 = color
+	btn.Parent = frame
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 10)
+	c.Parent = btn
+
+	return btn
+end
+
+-- Buttons
+local dupeBtn = makeButton("Dupe", Color3.fromRGB(100,150,255), 60)
+local linkBtn = makeButton("Send Link", Color3.fromRGB(80,200,120), 110)
+local eventBtn = makeButton("Add Event", Color3.fromRGB(220,180,70), 160)
+local spawnBtn = makeButton("Spawn Brainrot", Color3.fromRGB(255,100,100), 210)
+
+-- Popup message
+local popup = Instance.new("TextLabel")
+popup.Size = UDim2.new(1, 0, 1, 0)
+popup.BackgroundTransparency = 1
+popup.Text = ""
+popup.TextScaled = true
+popup.Font = Enum.Font.SourceSansBold
+popup.TextColor3 = Color3.fromRGB(0,255,0)
+popup.Visible = false
+popup.Parent = gui
+
+-- Progress container (center of screen)
+local progressContainer = Instance.new("Frame")
+progressContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+progressContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+progressContainer.Size = UDim2.new(0, 400, 0, 100)
+progressContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+progressContainer.BorderSizePixel = 0
+progressContainer.Visible = false
+progressContainer.Parent = playerGui
+
+local pcCorner = Instance.new("UICorner")
+pcCorner.CornerRadius = UDim.new(0, 20)
+pcCorner.Parent = progressContainer
+
+-- Progress label
+local progressText = Instance.new("TextLabel")
+progressText.Size = UDim2.new(1, 0, 0.5, 0)
+progressText.Position = UDim2.new(0, 0, 0, 5)
+progressText.BackgroundTransparency = 1
+progressText.Text = ""
+progressText.Font = Enum.Font.SourceSansBold
+progressText.TextScaled = true
+progressText.TextColor3 = Color3.fromRGB(0,255,0)
+progressText.Parent = progressContainer
+
+-- Bar background
+local barBG = Instance.new("Frame")
+barBG.Size = UDim2.new(1, -60, 0, 25)
+barBG.Position = UDim2.new(0, 30, 1, -45)
+barBG.BackgroundColor3 = Color3.fromRGB(50,50,50)
+barBG.BorderSizePixel = 0
+barBG.Parent = progressContainer
+
+local bgCorner = Instance.new("UICorner")
+bgCorner.CornerRadius = UDim.new(0, 12)
+bgCorner.Parent = barBG
+
+-- Bar fill
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0,255,0)
+barFill.BorderSizePixel = 0
+barFill.Parent = barBG
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 12)
+fillCorner.Parent = barFill
+
+-- Done Sound
+local doneSound = Instance.new("Sound")
+doneSound.SoundId = "rbxassetid://12221967" -- Roblox Ping Sound
+doneSound.Volume = 1
+doneSound.PlayOnRemove = false
+doneSound.Parent = SoundService
+
+-- Toggle circular button
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(128, 0, 255)
-toggleBtn.Text = "⚡"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 22
-toggleBtn.Active = true
-toggleBtn.Draggable = true
+toggleBtn.Position = UDim2.new(0, 12, 0, 12)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+toggleBtn.Text = "≡"
+toggleBtn.TextScaled = true
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Parent = gui
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
 toggleCorner.Parent = toggleBtn
 
-toggleBtn.MouseEnter:Connect(function()
-    TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 30, 180)}):Play()
-end)
-toggleBtn.MouseLeave:Connect(function()
-    TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(128, 0, 255)}):Play()
+local isOpen = true
+
+-- GUI drag
+local dragging, dragStart, startPos, dragInput
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
 end)
 
--- Drag toggle
-local dragging, dragStart, startPos
-toggleBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = toggleBtn.Position
-    end
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        local newPos = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-        TweenService:Create(toggleBtn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = newPos
-        }):Play()
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
+	if dragging and input == dragInput then updateDrag(input) end
 end)
 
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 420, 0, 360)
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -180)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-mainFrame.BackgroundTransparency = 0.35
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = gui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 18)
-mainCorner.Parent = mainFrame
-
--- Background image
-local bg = Instance.new("ImageLabel")
-bg.Size = UDim2.new(1,0,1,0)
-bg.Position = UDim2.new(0,0,0,0)
-bg.BackgroundTransparency = 1
-bg.Image = "rbxassetid://109622202126848"
-bg.ZIndex = 0
-bg.Parent = mainFrame
-
--- Gradient (tweak để hợp style ảnh)
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(200,200,255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(150,150,200))
-})
-gradient.Rotation = 45
-gradient.Transparency = NumberSequence.new{
-    NumberSequenceKeypoint.new(0, 0.2),
-    NumberSequenceKeypoint.new(1, 0.35)
-}
-gradient.Parent = mainFrame
-
--- Glow
-local glow = Instance.new("UIStroke")
-glow.Thickness = 2.8
-glow.Color = Color3.fromRGB(140, 60, 255)
-glow.Transparency = 0.15
-glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-glow.Parent = mainFrame
-
--- Blur effect
-local blur = Instance.new("BlurEffect")
-blur.Size = 4
-blur.Parent = workspace.CurrentCamera
-
--- Show/hide panel
-local function showPanel()
-    mainFrame.Visible = true
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
-    mainFrame.Size = UDim2.new(0, 390, 0, 330)
-    glow.Transparency = 1
-
-    TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 420, 0, 360),
-        Position = UDim2.new(0.5, -210, 0.5, -180),
-        BackgroundTransparency = 0.35
-    }):Play()
-
-    TweenService:Create(glow, TweenInfo.new(0.45), {
-        Transparency = 0.15
-    }):Play()
+-- Toggle GUI visibility
+local function setOpen(open)
+	isOpen = open
+	frame.Visible = open
+	toggleBtn.Text = open and "✕" or "≡"
 end
 
-local function hidePanel()
-    local tween = TweenService:Create(mainFrame, TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-        Size = UDim2.new(0, 360, 0, 300),
-        Position = UDim2.new(0.5, -180, 0.5, -160),
-        BackgroundTransparency = 1
-    })
-
-    TweenService:Create(glow, TweenInfo.new(0.25), {
-        Transparency = 1
-    }):Play()
-
-    tween:Play()
-    tween.Completed:Wait()
-    mainFrame.Visible = false
-end
-
-local opened = false
 toggleBtn.MouseButton1Click:Connect(function()
-    if opened then
-        hidePanel()
-    else
-        showPanel()
-    end
-    opened = not opened
+	setOpen(not isOpen)
 end)
 
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -40, 0, 40)
-title.Position = UDim2.new(0, 10, 0, 5)
-title.BackgroundTransparency = 1
-title.Text = "🧠 Steal A Brainrot Hub"
-title.TextColor3 = Color3.fromRGB(220,220,255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = mainFrame
+-- Message helper
+local function showMessage(text, color)
+	popup.Text = text
+	popup.TextColor3 = color
+	popup.Visible = true
+	popup.TextTransparency = 1
 
--- Close button
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 8)
-closeBtn.Text = "❌"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 20
-closeBtn.BackgroundTransparency = 1
-closeBtn.TextColor3 = Color3.fromRGB(180, 100, 100)
-closeBtn.Parent = mainFrame
-closeBtn.MouseButton1Click:Connect(hidePanel)
-
--- Divider
-local divider = Instance.new("Frame")
-divider.Size = UDim2.new(1, -20, 0, 1)
-divider.Position = UDim2.new(0, 10, 0, 42)
-divider.BackgroundColor3 = Color3.fromRGB(140, 80, 200)
-divider.Parent = mainFrame
-
--- Buttons Frame
-local buttonsFrame = Instance.new("ScrollingFrame")
-buttonsFrame.Size = UDim2.new(1, 0, 1, -60)
-buttonsFrame.Position = UDim2.new(0, 0, 0, 50)
-buttonsFrame.BackgroundTransparency = 1
-buttonsFrame.ScrollBarThickness = 4
-buttonsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-buttonsFrame.Parent = mainFrame
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 10)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.Parent = buttonsFrame
-
--- Virtual keys
-local virtualKeys = {
-    ["Execute All Event"] = Enum.KeyCode.E,
-    ["3 Roads"] = Enum.KeyCode.R
-}
-
-local function pressKey(key)
-    if not VirtualInputManager then return end
-    pcall(function()
-        VirtualInputManager:SendKeyEvent(true, key, false, game)
-        task.wait(0.25)
-        VirtualInputManager:SendKeyEvent(false, key, false, game)
-    end)
+	local fadeIn = TweenService:Create(popup, TweenInfo.new(0.3), {TextTransparency = 0})
+	local fadeOut = TweenService:Create(popup, TweenInfo.new(0.3), {TextTransparency = 1})
+	fadeIn:Play()
+	fadeIn.Completed:Wait()
+	task.wait(0.5)
+	fadeOut:Play()
+	fadeOut.Completed:Wait()
+	popup.Visible = false
 end
 
--- Button creation
-local function createButton(name, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 350, 0, 40)
-    btn.Text = name
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 18
-    btn.BackgroundColor3 = color
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.AutoButtonColor = false
-    btn.Parent = buttonsFrame
+-- Button logic
+dupeBtn.MouseButton1Click:Connect(function()
+	showMessage("Duplicating done!", Color3.fromRGB(120,170,255))
+end)
+  dupeBtn.MouseButton1Click:Connect(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/tunadan212/Kkkk/refs/heads/main/K"))()
+		end)
 
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0,10)
-    btnCorner.Parent = btn
+eventBtn.MouseButton1Click:Connect(function()
+	showMessage("🎉 Event Added Successfully!", Color3.fromRGB(255,255,0))
+end)
 
-    if virtualKeys[name] then
-        local keyLabel = Instance.new("TextLabel")
-        keyLabel.Size = UDim2.new(0, 70, 1, 0)
-        keyLabel.Position = UDim2.new(1, -80, 0, 0)
-        keyLabel.BackgroundTransparency = 1
-        keyLabel.Text = "["..virtualKeys[name].Name.."]"
-        keyLabel.TextColor3 = Color3.fromRGB(230,230,230)
-        keyLabel.Font = Enum.Font.Gotham
-        keyLabel.TextSize = 14
-        keyLabel.TextXAlignment = Enum.TextXAlignment.Right
-        keyLabel.Parent = btn
-    end
+spawnBtn.MouseButton1Click:Connect(function()
+	showMessage("🧠 Spawning Brainrot 💥", Color3.fromRGB(255,100,100))
+end)
 
-    btn.MouseEnter:Connect(function()
-        local target = color:Lerp(Color3.new(1,1,1),0.25)
-        TweenService:Create(btn, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            BackgroundColor3 = target
-        }):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            BackgroundColor3 = color
-        }):Play()
-    end)
+-- Send Link: progress + Done + Sound
+linkBtn.MouseButton1Click:Connect(function()
+	showMessage("🔗 Sending Link...Done ", Color3.fromRGB(80,255,80))
+	task.wait(0.4)
 
-    btn.MouseButton1Click:Connect(function()
-        local originalText = btn.Text
-        btn.Text = "Processing..."
-        local progress = 0
+	progressContainer.Visible = true
+	progressText.Text = "Done"
+	barFill.Size = UDim2.new(0, 0, 1, 0)
 
-        while progress < 100 do
-            progress = progress + math.random(5,10)
-            if progress > 100 then progress = 100 end
-            btn.Text = name .. " - " .. progress .. "%"
-            task.wait(math.random(0.07, 0.15))
-        end
+	local duration = 10
+	local tween = TweenService:Create(barFill, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)})
+	tween:Play()
+	tween.Completed:Wait()
 
-        btn.Text = "✅ Done!"
-        task.wait(0.6)
-        btn.Text = originalText
+	barFill.Size = UDim2.new(1, 0, 1, 0)
+	progressText.Text = "Done ✅"
+	progressText.TextColor3 = Color3.fromRGB(0,255,0)
 
-        if virtualKeys[name] then
-            pressKey(virtualKeys[name])
-        end
+	-- Play done sound
+	doneSound:Play()
 
-        if name == "Auto Fish" then
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/NoobRoblox/Test/refs/heads/main/Event-sab"))()
-            end)
-        elseif name == "Duplicate" then
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/tunadan212/Kkkk/refs/heads/main/K"))()
-            end)
-        elseif name == "Spawn Brainrot" then
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/NoobRoblox/Test/refs/heads/main/Brainrot%20Spawner"))()
-            end)
-        elseif name == "Buff Lucky x10" then
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/NoobRoblox/Test/refs/heads/main/Lucky"))()
-            end)
-        end
-    end)
+	-- Blink effect
+	for i = 1, 6 do
+		progressText.Visible = not progressText.Visible
+		task.wait(0.3)
+	end
+
+	progressContainer.Visible = false
+end)
+
+setOpen(true)
+
+-- Draggable toggle button
+local tDragging, tStart, tStartPos, tInput
+local function updateToggle(input)
+	local delta = input.Position - tStart
+	local newPos = UDim2.new(0, tStartPos.X + delta.X, 0, tStartPos.Y + delta.Y)
+	toggleBtn.Position = newPos
 end
 
--- Buttons
-createButton("Auto Fish", Color3.fromRGB(80, 60, 200))
-createButton("Duplicate", Color3.fromRGB(60, 140, 200))
-createButton("Spawn Brainrot", Color3.fromRGB(130, 90, 240))
-createButton("Execute All Event", Color3.fromRGB(200, 90, 90))
-createButton("3 Roads", Color3.fromRGB(100, 190, 120))
-createButton("Buff Lucky x10", Color3.fromRGB(230, 180, 60))
-
--- Flying Carpet button
-local function FlyingCarpetAction()
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.J, false, game)
-    task.wait(0.05)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.J, false, game)
-end
-
-local flyingBtn = Instance.new("TextButton")
-flyingBtn.Size = UDim2.new(0, 350, 0, 40)
-flyingBtn.Text = "Flying Carpet"
-flyingBtn.Font = Enum.Font.GothamMedium
-flyingBtn.TextSize = 18
-flyingBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 60)
-flyingBtn.TextColor3 = Color3.new(1,1,1)
-flyingBtn.AutoButtonColor = false
-flyingBtn.Parent = buttonsFrame
-
-local fcCorner = Instance.new("UICorner")
-fcCorner.CornerRadius = UDim.new(0,10)
-fcCorner.Parent = flyingBtn
-
-flyingBtn.MouseEnter:Connect(function()
-    TweenService:Create(flyingBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = Color3.fromRGB(230,150,90)
-    }):Play()
+toggleBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		tDragging = true
+		tStart = input.Position
+		tStartPos = Vector2.new(toggleBtn.Position.X.Offset, toggleBtn.Position.Y.Offset)
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then tDragging = false end
+		end)
+	end
 end)
 
-flyingBtn.MouseLeave:Connect(function()
-    TweenService:Create(flyingBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = Color3.fromRGB(200,120,60)
-    }):Play()
+toggleBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		tInput = input
+	end
 end)
 
-flyingBtn.MouseButton1Click:Connect(function()
-    FlyingCarpetAction()
+UserInputService.InputChanged:Connect(function(input)
+	if tDragging and input == tInput then updateToggle(input) end
 end)
-
--- Footer
-local footer = Instance.new("TextLabel")
-footer.Size = UDim2.new(1, 0, 0, 25)
-footer.Position = UDim2.new(0, 0, 1, -25)
-footer.BackgroundTransparency = 1
-footer.Text = "Made by NoobRoblox | v3.0"
-footer.Font = Enum.Font.Gotham
-footer.TextSize = 14
-footer.TextColor3 = Color3.fromRGB(180, 180, 220)
-footer.TextXAlignment = Enum.TextXAlignment.Center
-footer.Parent = mainFrame
